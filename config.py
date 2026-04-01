@@ -53,7 +53,6 @@ class BotConfig:
     register_guild_id: Optional[int]
     data_file_path: Path
     starting_balance: int
-    patrol_channel_id: Optional[int]
     erlc_server_name: str
     erlc_join_code: Optional[str]
     community_invite_url: Optional[str]
@@ -71,7 +70,6 @@ class BotConfig:
                 os.getenv("DATA_FILE_PATH", "").strip() or "data/community-store.json"
             ),
             starting_balance=parse_positive_int("STARTING_BALANCE", 500),
-            patrol_channel_id=parse_optional_id(os.getenv("PATROL_CHANNEL_ID", "")),
             erlc_server_name=os.getenv("ERLC_SERVER_NAME", "").strip() or "ERLC Community",
             erlc_join_code=optional_text("ERLC_JOIN_CODE"),
             community_invite_url=optional_text("COMMUNITY_INVITE_URL"),

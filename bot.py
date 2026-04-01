@@ -12,6 +12,9 @@ from dotenv import load_dotenv
 from cogs.community import CommunityCog
 from cogs.economy import EconomyCog
 from cogs.fun import FunCog
+from cogs.generators import GeneratorCog
+from cogs.social import SocialCog
+from cogs.utility import UtilityCog
 from config import BotConfig
 from helpers import (
     extract_api_error_message,
@@ -43,6 +46,9 @@ class CommunityBot(commands.Bot):
         await self.add_cog(EconomyCog(self))
         await self.add_cog(CommunityCog(self))
         await self.add_cog(FunCog(self))
+        await self.add_cog(SocialCog(self))
+        await self.add_cog(UtilityCog(self))
+        await self.add_cog(GeneratorCog(self))
 
         if self.config.register_guild_id:
             guild = discord.Object(id=self.config.register_guild_id)

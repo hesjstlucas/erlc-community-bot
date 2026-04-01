@@ -1,14 +1,12 @@
 # ERLC Community Bot
 
-A completely new standalone Discord bot built for ERLC community servers with:
+A standalone Discord bot for ERLC communities that focuses on economy, profiles, fun, generators, and casual utility commands.
 
-- persistent economy commands
-- fun and gambling commands
-- community profiles and reputation
-- ERLC patrol, callsign, shift, and server utilities
 - no moderation commands
+- no staff patrol or shift systems
+- 70+ community-focused slash commands
 
-## Commands
+## Command Categories
 
 ### Economy
 
@@ -26,20 +24,66 @@ A completely new standalone Discord bot built for ERLC community servers with:
 - `/use`
 - `/inventory`
 
-### Community + ERLC
+### Profiles
 
 - `/profile`
 - `/bio`
 - `/rep`
+- `/rep_leaderboard`
+- `/networth`
 - `/callsign_set`
 - `/callsign_view`
-- `/patrol_on`
-- `/patrol_off`
-- `/shift_start`
-- `/shift_end`
-- `/shift_stats`
-- `/server`
-- `/patrol_tip`
+- `/pronouns_set`
+- `/pronouns_view`
+- `/location_set`
+- `/location_view`
+- `/birthday_set`
+- `/birthday_view`
+- `/hobbies_set`
+- `/hobbies_view`
+- `/likes_set`
+- `/likes_view`
+- `/dislikes_set`
+- `/dislikes_view`
+- `/status_set`
+- `/status_view`
+- `/motto_set`
+- `/motto_view`
+- `/favorite_song_set`
+- `/favorite_song_view`
+- `/favorite_vehicle_set`
+- `/favorite_vehicle_view`
+
+### Social
+
+- `/avatar`
+- `/friendship`
+- `/ship`
+- `/compliment`
+- `/roast`
+- `/motivate`
+- `/truth`
+- `/dare`
+- `/wouldyourather`
+- `/nhie`
+- `/mood`
+- `/poll`
+- `/topic`
+
+### Utility
+
+- `/choose`
+- `/random_number`
+- `/reverse`
+- `/clap`
+- `/emojify`
+- `/say`
+- `/wordcount`
+- `/charcount`
+- `/binary`
+- `/hex`
+- `/membercount`
+- `/joined`
 
 ### Fun
 
@@ -50,16 +94,41 @@ A completely new standalone Discord bot built for ERLC community servers with:
 - `/slots`
 - `/scenario`
 - `/rate`
+- `/question`
+- `/fortune`
+- `/joke`
+- `/fact`
+- `/pickup`
+- `/nickname_idea`
+- `/colorcombo`
+- `/moviepick`
+- `/foodpick`
+
+### ERLC Generators
+
+- `/server`
+- `/rp_name`
+- `/business_name`
+- `/plate`
+- `/eventidea`
+- `/vehicleidea`
+- `/scene_twist`
+- `/civilian_call`
+- `/serverad`
+- `/outfitidea`
+- `/crewname`
+- `/street_name`
+- `/playlist_name`
+- `/petname`
 
 ## What It Tracks
 
 - wallet and bank balances
 - daily streaks
-- profile bios and rep
+- profile bios and reputation
+- favorite things and profile details
 - inventory and shop items
 - callsigns
-- patrol ads
-- total shift time and payouts
 
 All server data is stored in a local JSON file at `data/community-store.json` by default.
 
@@ -67,7 +136,7 @@ All server data is stored in a local JSON file at `data/community-store.json` by
 
 1. Copy `.env.example` to `.env`.
 2. Fill in your Discord bot token.
-3. Optionally add your ERLC server join code, invite link, patrol channel ID, and ERLC API key settings.
+3. Optionally add your ERLC server join code, invite link, and ERLC API key settings.
 4. Install dependencies:
 
 ```bash
@@ -80,13 +149,14 @@ py -m pip install -r requirements.txt
 py bot.py
 ```
 
+Railway can use the included `Procfile` directly.
+
 ## Environment Variables
 
 - `DISCORD_TOKEN` is required.
 - `REGISTER_GUILD_ID` is optional and lets slash commands sync instantly to one test server.
 - `DATA_FILE_PATH` changes where the JSON data is stored.
 - `STARTING_BALANCE` changes the default wallet value for new members.
-- `PATROL_CHANNEL_ID` makes `/patrol_on` post in one specific channel.
 - `ERLC_SERVER_NAME` sets the fallback server name shown in `/server`.
 - `ERLC_JOIN_CODE` sets the fallback join code shown in `/server`.
 - `COMMUNITY_INVITE_URL` adds a clickable invite link to `/server`.
@@ -97,6 +167,6 @@ py bot.py
 
 ## Notes
 
-- This bot is intentionally community-focused and ships with zero moderation commands.
-- Economy data is stored per Discord server, so each ERLC community keeps its own progression.
+- This bot is intentionally community-focused and ships with zero moderation tools.
+- Economy data is stored per Discord server, so each community keeps its own progression.
 - If `ERLC_SERVER_KEY` is not set, `/server` still works with your configured fallback info.

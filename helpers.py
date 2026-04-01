@@ -16,7 +16,7 @@ ITEMS: dict[str, dict[str, Any]] = {
     "radio": {
         "name": "Portable Radio",
         "cost": 275,
-        "description": "A collectible patrol flex item for your inventory.",
+        "description": "A collectible community flex item for your inventory.",
         "usable": False,
     },
     "donut_box": {
@@ -33,7 +33,7 @@ ITEMS: dict[str, dict[str, Any]] = {
         "description": "Use it for a medium random cash boost.",
         "usable": True,
         "reward_range": (90, 240),
-        "use_text": "You slammed an energy drink and powered through a busy patrol shift.",
+        "use_text": "You slammed an energy drink and powered through a busy night in the city.",
     },
     "lucky_crate": {
         "name": "Lucky Crate",
@@ -185,14 +185,14 @@ def build_badges(record: dict[str, Any]) -> list[str]:
         badges.append("Trusted")
     if total_wealth(record) >= 7500:
         badges.append("Loaded")
-    if int(record.get("total_shift_seconds", 0)) >= 6 * 3600:
-        badges.append("Shift Vet")
-    if int(record.get("patrol_count", 0)) >= 10:
-        badges.append("Patrol Pro")
     if int(record.get("daily_streak", 0)) >= 5:
         badges.append("Consistent")
     if inventory_total(record) >= 5:
         badges.append("Collector")
+    if int(record.get("total_earned", 0)) >= 20000:
+        badges.append("Hustler")
+    if str(record.get("favorite_vehicle", "")).strip():
+        badges.append("Car Lover")
     return badges
 
 
@@ -216,6 +216,16 @@ def default_user_record(member: discord.Member, starting_balance: int) -> dict[s
         "rep": 0,
         "bio": "",
         "callsign": "",
+        "pronouns": "",
+        "location": "",
+        "hobbies": "",
+        "likes": "",
+        "dislikes": "",
+        "status_text": "",
+        "motto": "",
+        "birthday": "",
+        "favorite_song": "",
+        "favorite_vehicle": "",
         "daily_streak": 0,
         "last_daily_at": None,
         "last_work_at": None,
@@ -223,10 +233,6 @@ def default_user_record(member: discord.Member, starting_balance: int) -> dict[s
         "last_crime_at": None,
         "last_rep_given_at": None,
         "inventory": {},
-        "active_shift_started_at": None,
-        "total_shift_seconds": 0,
-        "patrol_count": 0,
-        "active_patrol": None,
         "total_earned": 0,
         "total_lost": 0,
     }
@@ -251,19 +257,23 @@ def ensure_user_record(
     user_record["rep"] = int(user_record.get("rep", 0))
     user_record["bio"] = str(user_record.get("bio", "")).strip()
     user_record["callsign"] = str(user_record.get("callsign", "")).strip()
+    user_record["pronouns"] = str(user_record.get("pronouns", "")).strip()
+    user_record["location"] = str(user_record.get("location", "")).strip()
+    user_record["hobbies"] = str(user_record.get("hobbies", "")).strip()
+    user_record["likes"] = str(user_record.get("likes", "")).strip()
+    user_record["dislikes"] = str(user_record.get("dislikes", "")).strip()
+    user_record["status_text"] = str(user_record.get("status_text", "")).strip()
+    user_record["motto"] = str(user_record.get("motto", "")).strip()
+    user_record["birthday"] = str(user_record.get("birthday", "")).strip()
+    user_record["favorite_song"] = str(user_record.get("favorite_song", "")).strip()
+    user_record["favorite_vehicle"] = str(user_record.get("favorite_vehicle", "")).strip()
     user_record["daily_streak"] = int(user_record.get("daily_streak", 0))
-    user_record["total_shift_seconds"] = int(user_record.get("total_shift_seconds", 0))
-    user_record["patrol_count"] = int(user_record.get("patrol_count", 0))
     user_record["total_earned"] = int(user_record.get("total_earned", 0))
     user_record["total_lost"] = int(user_record.get("total_lost", 0))
 
     inventory = user_record.get("inventory")
     if not isinstance(inventory, dict):
         user_record["inventory"] = {}
-
-    active_patrol = user_record.get("active_patrol")
-    if active_patrol is not None and not isinstance(active_patrol, dict):
-        user_record["active_patrol"] = None
 
     return user_record
 

@@ -36,23 +36,23 @@ ITEM_CHOICES = [
 ]
 
 WORK_SCENARIOS = [
-    "You ran a smooth patrol and logged a clean report.",
-    "You helped clear traffic around a busy scene.",
+    "You ran a smooth shift at your side hustle and kept everything moving.",
+    "You helped manage a packed community event without things getting messy.",
     "You organized a quick community meet-and-greet.",
-    "You wrapped up a long ERLC shift with no incidents.",
-    "You handled dispatch notes and kept comms tidy.",
+    "You wrapped up a long night of server grinding with no drama.",
+    "You handled a stack of messages and kept things tidy.",
 ]
 
 BEG_SCENARIOS = [
     "A friendly driver tossed you some spare cash.",
-    "Someone at the station snack table helped you out.",
-    "A passerby liked your patrol vibe and donated.",
-    "A dispatcher found some extra change for you.",
+    "Someone at the community snack table helped you out.",
+    "A passerby liked your style and donated.",
+    "A random stranger found some extra change for you.",
 ]
 
 CRIME_SUCCESS_SCENARIOS = [
     "You pulled off a sneaky register swipe and got away clean.",
-    "You boosted a hidden stash and slipped past the patrol zone.",
+    "You boosted a hidden stash and slipped away unnoticed.",
     "You hustled a risky deal that actually paid off.",
 ]
 

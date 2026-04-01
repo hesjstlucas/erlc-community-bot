@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Any, Optional
 
 import discord
@@ -8,18 +7,14 @@ from discord import app_commands
 
 from cogs.base import BaseCommunityCog
 from helpers import (
-    ITEMS,
     REP_COOLDOWN,
     build_badges,
     ensure_guild_record,
     ensure_user_record,
     format_cooldown,
-    format_duration,
     format_money,
-    format_relative_time,
     get_ready_at,
     inventory_total,
-    parse_iso_datetime,
     require_guild,
     require_member,
     safe_int,
@@ -29,23 +24,6 @@ from helpers import (
     utc_now,
     utc_now_iso,
 )
-
-DEPARTMENT_CHOICES = [
-    app_commands.Choice(name="Law Enforcement", value="Law Enforcement"),
-    app_commands.Choice(name="Sheriff", value="Sheriff"),
-    app_commands.Choice(name="Fire & Rescue", value="Fire & Rescue"),
-    app_commands.Choice(name="DOT", value="DOT"),
-    app_commands.Choice(name="Civilian", value="Civilian"),
-    app_commands.Choice(name="Dispatch", value="Dispatch"),
-]
-
-PATROL_TIPS = [
-    "Use short, clear radio updates so scenes stay organized.",
-    "A good patrol ad includes department, location, and whether you want ride-alongs.",
-    "Rotate scenes and calls to keep the server feeling active for everyone.",
-    "A clean callsign makes it much easier for staff and dispatch to find you.",
-    "If patrol slows down, start a small community event instead of forcing scenes.",
-]
 
 
 def build_profile_embed(member: discord.Member, record: dict[str, Any]) -> discord.Embed:
@@ -62,31 +40,22 @@ def build_profile_embed(member: discord.Member, record: dict[str, Any]) -> disco
     embed.add_field(name="Daily Streak", value=str(int(record.get("daily_streak", 0))), inline=True)
     embed.add_field(name="Items", value=str(inventory_total(record)), inline=True)
     embed.add_field(name="Callsign", value=record.get("callsign") or "Not set", inline=True)
-    embed.add_field(name="Patrols", value=str(int(record.get("patrol_count", 0))), inline=True)
-    embed.add_field(
-        name="Shift Time",
-        value=format_duration(int(record.get("total_shift_seconds", 0))),
-        inline=True,
-    )
+    embed.add_field(name="Pronouns", value=record.get("pronouns") or "Not set", inline=True)
+    embed.add_field(name="Location", value=record.get("location") or "Not set", inline=True)
 
-    active_shift = record.get("active_shift_started_at")
-    if active_shift:
-        embed.add_field(
-            name="Active Shift",
-            value=f"Started {format_relative_time(active_shift)}",
-            inline=False,
-        )
-
-    active_patrol = record.get("active_patrol")
-    if isinstance(active_patrol, dict):
-        location = active_patrol.get("location") or "Unknown location"
-        department = active_patrol.get("department") or "Unknown department"
-        started_at = active_patrol.get("started_at")
-        embed.add_field(
-            name="Active Patrol",
-            value=f"{department} at {location}\nStarted {format_relative_time(started_at)}",
-            inline=False,
-        )
+    details: list[tuple[str, str]] = [
+        ("Status", str(record.get("status_text", "")).strip()),
+        ("Motto", str(record.get("motto", "")).strip()),
+        ("Birthday", str(record.get("birthday", "")).strip()),
+        ("Favorite Song", str(record.get("favorite_song", "")).strip()),
+        ("Favorite Vehicle", str(record.get("favorite_vehicle", "")).strip()),
+        ("Hobbies", str(record.get("hobbies", "")).strip()),
+        ("Likes", str(record.get("likes", "")).strip()),
+        ("Dislikes", str(record.get("dislikes", "")).strip()),
+    ]
+    for label, value in details:
+        if value:
+            embed.add_field(name=label, value=value[:400], inline=False)
 
     badges = build_badges(record)
     if badges:
@@ -96,55 +65,18 @@ def build_profile_embed(member: discord.Member, record: dict[str, Any]) -> disco
     return embed
 
 
-def build_patrol_embed(
-    member: discord.Member,
-    record: dict[str, Any],
-    patrol: dict[str, Any],
-    *,
-    ended: bool = False,
-) -> discord.Embed:
-    title = "ERLC Patrol Ended" if ended else "ERLC Patrol Live"
-    description = (
-        f"{member.mention} has wrapped their patrol."
-        if ended
-        else f"{member.mention} is now active and available for RP."
-    )
-    color = discord.Color.red() if ended else discord.Color.green()
-    embed = discord.Embed(title=title, description=description, color=color, timestamp=utc_now())
-    embed.add_field(name="Department", value=patrol.get("department", "Unknown"), inline=True)
-    embed.add_field(name="Location", value=patrol.get("location", "Unknown"), inline=True)
-    embed.add_field(name="Callsign", value=record.get("callsign") or "Not set", inline=True)
-    if patrol.get("notes"):
-        embed.add_field(name="Notes", value=str(patrol["notes"])[:500], inline=False)
-
-    field_name = "Patrol Started" if ended else "Started"
-    field_value = format_relative_time(patrol.get("started_at"))
-    embed.add_field(name=field_name, value=field_value, inline=False)
-    return embed
-
-
 class CommunityCog(BaseCommunityCog):
     def __init__(self, bot) -> None:
         self.bot = bot
         self.config = bot.config
         self.store = bot.store
 
-    def _get_target_channel(self, interaction: discord.Interaction):
-        guild = require_guild(interaction)
-        if self.config.patrol_channel_id:
-            configured = guild.get_channel_or_thread(self.config.patrol_channel_id)
-            if configured is not None:
-                return configured
-        if interaction.channel is not None:
-            return interaction.channel
-        raise ValueError("I could not find a text channel for the patrol announcement.")
-
-    @app_commands.command(name="help", description="See the bot's economy, fun, and ERLC commands.")
+    @app_commands.command(name="help", description="See the bot's command categories.")
     @app_commands.guild_only()
     async def help_command(self, interaction: discord.Interaction) -> None:
         embed = discord.Embed(
             title="ERLC Community Bot",
-            description="Community-first features only. No moderation commands are included.",
+            description="Community-first features only. No moderation or staff systems are included.",
             color=discord.Color.blurple(),
             timestamp=utc_now(),
         )
@@ -152,22 +84,55 @@ class CommunityCog(BaseCommunityCog):
             name="Economy",
             value=(
                 "`/balance`, `/daily`, `/work`, `/beg`, `/crime`, `/deposit`, `/withdraw`, "
-                "`/pay`, `/shop`, `/buy`, `/use`, `/inventory`, `/leaderboard`"
+                "`/pay`, `/leaderboard`, `/shop`, `/buy`, `/use`, `/inventory`"
             ),
             inline=False,
         )
         embed.add_field(
-            name="Community + ERLC",
+            name="Profiles",
             value=(
-                "`/profile`, `/bio`, `/rep`, `/callsign_set`, `/callsign_view`, "
-                "`/patrol_on`, `/patrol_off`, `/shift_start`, `/shift_end`, "
-                "`/shift_stats`, `/server`, `/patrol_tip`"
+                "`/profile`, `/bio`, `/rep`, `/rep_leaderboard`, `/networth`, "
+                "`/callsign_set`, `/callsign_view`, `/pronouns_set`, `/pronouns_view`, "
+                "`/location_set`, `/location_view`, `/birthday_set`, `/birthday_view`, "
+                "`/hobbies_set`, `/hobbies_view`, `/likes_set`, `/likes_view`, "
+                "`/dislikes_set`, `/dislikes_view`, `/status_set`, `/status_view`, "
+                "`/motto_set`, `/motto_view`, `/favorite_song_set`, `/favorite_song_view`, "
+                "`/favorite_vehicle_set`, `/favorite_vehicle_view`"
             ),
             inline=False,
         )
         embed.add_field(
-            name="Fun",
-            value="`/eightball`, `/coinflip`, `/dice`, `/slots`, `/scenario`, `/rate`",
+            name="Social",
+            value=(
+                "`/avatar`, `/friendship`, `/ship`, `/compliment`, `/roast`, `/motivate`, "
+                "`/truth`, `/dare`, `/wouldyourather`, `/nhie`, `/mood`, `/poll`, `/topic`"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Text + Utility",
+            value=(
+                "`/choose`, `/random_number`, `/reverse`, `/clap`, `/emojify`, `/say`, "
+                "`/wordcount`, `/charcount`, `/binary`, `/hex`, `/membercount`, `/joined`"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="Fun + Games",
+            value=(
+                "`/eightball`, `/coinflip`, `/dice`, `/slots`, `/scenario`, `/rate`, "
+                "`/question`, `/fortune`, `/joke`, `/fact`, `/pickup`, `/nickname_idea`, "
+                "`/colorcombo`, `/moviepick`, `/foodpick`"
+            ),
+            inline=False,
+        )
+        embed.add_field(
+            name="ERLC Generators",
+            value=(
+                "`/server`, `/rp_name`, `/business_name`, `/plate`, `/eventidea`, "
+                "`/vehicleidea`, `/scene_twist`, `/civilian_call`, `/serverad`, "
+                "`/outfitidea`, `/crewname`, `/street_name`, `/playlist_name`, `/petname`"
+            ),
             inline=False,
         )
         await send_response(interaction, embed=embed, ephemeral=True)
@@ -252,6 +217,56 @@ class CommunityCog(BaseCommunityCog):
             ),
         )
 
+    @app_commands.command(name="rep_leaderboard", description="See the most repped members in the server.")
+    @app_commands.guild_only()
+    async def rep_leaderboard(self, interaction: discord.Interaction) -> None:
+        guild = require_guild(interaction)
+        data = await self.store.read()
+        guild_record = ensure_guild_record(data, guild.id)
+        raw_users = guild_record.get("users", {})
+        if not isinstance(raw_users, dict) or not raw_users:
+            raise ValueError("No rep data exists yet. Start by using `/rep`.")
+
+        ranking = [
+            (user_id, record)
+            for user_id, record in raw_users.items()
+            if isinstance(record, dict)
+        ]
+        ranking.sort(key=lambda item: int(item[1].get("rep", 0)), reverse=True)
+
+        lines: list[str] = []
+        for index, (user_id, record) in enumerate(ranking[:10], start=1):
+            member = guild.get_member(int(user_id))
+            display_name = member.display_name if member else str(record.get("display_name", "Unknown"))
+            safe_name = discord.utils.escape_markdown(display_name)
+            lines.append(f"**{index}.** {safe_name} - {int(record.get('rep', 0))} rep")
+
+        embed = discord.Embed(
+            title=f"{guild.name} Rep Leaderboard",
+            description="\n".join(lines) if lines else "No rep data yet.",
+            color=discord.Color.fuchsia(),
+            timestamp=utc_now(),
+        )
+        await send_response(interaction, embed=embed)
+
+    @app_commands.command(name="networth", description="Check the total wealth of a member.")
+    @app_commands.guild_only()
+    @app_commands.describe(member="Pick someone else if you want to view their net worth.")
+    async def networth(
+        self,
+        interaction: discord.Interaction,
+        member: Optional[discord.Member] = None,
+    ) -> None:
+        guild = require_guild(interaction)
+        target = member or require_member(interaction)
+        data = await self.store.read()
+        guild_record = ensure_guild_record(data, guild.id)
+        record = ensure_user_record(guild_record, target, self.config.starting_balance)
+        await send_response(
+            interaction,
+            content=f"**{target.display_name}** has a net worth of **{format_money(total_wealth(record))}**.",
+        )
+
     @app_commands.command(name="callsign_set", description="Set or clear your ERLC callsign.")
     @app_commands.guild_only()
     @app_commands.describe(value="Use clear to remove it.")
@@ -292,224 +307,6 @@ class CommunityCog(BaseCommunityCog):
         record = ensure_user_record(guild_record, target, self.config.starting_balance)
         callsign = record.get("callsign") or "Not set"
         await send_response(interaction, content=f"**{target.display_name}** callsign: **{callsign}**")
-
-    @app_commands.command(name="patrol_on", description="Post a live patrol ad for your ERLC shift.")
-    @app_commands.guild_only()
-    @app_commands.describe(
-        department="Your current roleplay department.",
-        location="Where you are patrolling.",
-        notes="Optional notes like ride-alongs or patrol style.",
-    )
-    @app_commands.choices(department=DEPARTMENT_CHOICES)
-    async def patrol_on(
-        self,
-        interaction: discord.Interaction,
-        department: app_commands.Choice[str],
-        location: str,
-        notes: Optional[str] = None,
-    ) -> None:
-        guild = require_guild(interaction)
-        member = require_member(interaction)
-        location_text = location.strip()
-        notes_text = (notes or "").strip()
-        if len(location_text) > 80:
-            raise ValueError("Keep the patrol location under 80 characters.")
-        if len(notes_text) > 160:
-            raise ValueError("Keep patrol notes under 160 characters.")
-
-        def action(data: dict[str, Any]) -> dict[str, Any]:
-            guild_record = ensure_guild_record(data, guild.id)
-            record = ensure_user_record(guild_record, member, self.config.starting_balance)
-            if isinstance(record.get("active_patrol"), dict):
-                raise ValueError("You already have an active patrol ad. Use `/patrol_off` first.")
-
-            patrol = {
-                "department": department.value,
-                "location": location_text,
-                "notes": notes_text,
-                "started_at": utc_now_iso(),
-                "channel_id": 0,
-                "message_id": 0,
-            }
-            record["active_patrol"] = patrol
-            record["patrol_count"] += 1
-            return patrol
-
-        patrol = await self.store.mutate(action)
-        channel = self._get_target_channel(interaction)
-
-        data = await self.store.read()
-        guild_record = ensure_guild_record(data, guild.id)
-        record = ensure_user_record(guild_record, member, self.config.starting_balance)
-        embed = build_patrol_embed(member, record, patrol)
-
-        try:
-            message = await channel.send(embed=embed)
-        except discord.HTTPException as error:
-            def rollback(data: dict[str, Any]) -> None:
-                guild_record = ensure_guild_record(data, guild.id)
-                record = ensure_user_record(guild_record, member, self.config.starting_balance)
-                record["active_patrol"] = None
-                record["patrol_count"] = max(int(record.get("patrol_count", 0)) - 1, 0)
-
-            await self.store.mutate(rollback)
-            raise ValueError(f"I could not post the patrol ad: {summarize_exception(error)}")
-
-        def finalize(data: dict[str, Any]) -> None:
-            guild_record = ensure_guild_record(data, guild.id)
-            record = ensure_user_record(guild_record, member, self.config.starting_balance)
-            active_patrol = record.get("active_patrol")
-            if isinstance(active_patrol, dict):
-                active_patrol["channel_id"] = message.channel.id
-                active_patrol["message_id"] = message.id
-
-        await self.store.mutate(finalize)
-        await send_response(
-            interaction,
-            content=f"Your patrol ad is live in {message.channel.mention}.",
-            ephemeral=True,
-        )
-
-    @app_commands.command(name="patrol_off", description="End your current patrol ad.")
-    @app_commands.guild_only()
-    async def patrol_off(self, interaction: discord.Interaction) -> None:
-        guild = require_guild(interaction)
-        member = require_member(interaction)
-        patrol_snapshot: dict[str, Any] = {}
-        record_snapshot: dict[str, Any] = {}
-
-        def action(data: dict[str, Any]) -> None:
-            guild_record = ensure_guild_record(data, guild.id)
-            record = ensure_user_record(guild_record, member, self.config.starting_balance)
-            active_patrol = record.get("active_patrol")
-            if not isinstance(active_patrol, dict):
-                raise ValueError("You do not have an active patrol ad right now.")
-            patrol_snapshot.update(active_patrol)
-            record_snapshot.update(record)
-            record["active_patrol"] = None
-
-        await self.store.mutate(action)
-        ended_embed = build_patrol_embed(member, record_snapshot, patrol_snapshot, ended=True)
-
-        channel_id = safe_int(patrol_snapshot.get("channel_id"))
-        message_id = safe_int(patrol_snapshot.get("message_id"))
-        if channel_id and message_id:
-            try:
-                channel = guild.get_channel_or_thread(channel_id)
-                if channel is None:
-                    channel = await self.bot.fetch_channel(channel_id)
-                message = await channel.fetch_message(message_id)
-                await message.edit(embed=ended_embed)
-            except (discord.HTTPException, AttributeError):
-                pass
-
-        await send_response(interaction, content="Your patrol ad has been ended.", ephemeral=True)
-
-    @app_commands.command(name="shift_start", description="Start tracking an ERLC shift.")
-    @app_commands.guild_only()
-    async def shift_start(self, interaction: discord.Interaction) -> None:
-        guild = require_guild(interaction)
-        member = require_member(interaction)
-
-        def action(data: dict[str, Any]) -> str:
-            guild_record = ensure_guild_record(data, guild.id)
-            record = ensure_user_record(guild_record, member, self.config.starting_balance)
-            if record.get("active_shift_started_at"):
-                raise ValueError("You already have a shift running.")
-            record["active_shift_started_at"] = utc_now_iso()
-            return record["active_shift_started_at"]
-
-        started_at = await self.store.mutate(action)
-        await send_response(
-            interaction,
-            content=f"Shift started {format_relative_time(started_at)}.",
-            ephemeral=True,
-        )
-
-    @app_commands.command(name="shift_end", description="End your shift and get paid for it.")
-    @app_commands.guild_only()
-    async def shift_end(self, interaction: discord.Interaction) -> None:
-        guild = require_guild(interaction)
-        member = require_member(interaction)
-
-        def action(data: dict[str, Any]) -> dict[str, int]:
-            guild_record = ensure_guild_record(data, guild.id)
-            record = ensure_user_record(guild_record, member, self.config.starting_balance)
-            started_at = record.get("active_shift_started_at")
-            if not started_at:
-                raise ValueError("You do not have an active shift.")
-
-            started_dt = parse_iso_datetime(started_at)
-            if started_dt is None:
-                raise ValueError("Your saved shift start time could not be read.")
-
-            elapsed_seconds = max(int((utc_now() - started_dt).total_seconds()), 0)
-            blocks = max(1, elapsed_seconds // 900)
-            payout = blocks * 140 + random.randint(25, 90)
-            record["active_shift_started_at"] = None
-            record["total_shift_seconds"] += elapsed_seconds
-            record["wallet"] += payout
-            record["total_earned"] += payout
-            return {
-                "elapsed": elapsed_seconds,
-                "payout": payout,
-                "wallet": record["wallet"],
-                "total_shift_seconds": record["total_shift_seconds"],
-            }
-
-        result = await self.store.mutate(action)
-        embed = discord.Embed(
-            title="Shift Ended",
-            description=(
-                f"You worked **{format_duration(result['elapsed'])}** and earned "
-                f"**{format_money(result['payout'])}**."
-            ),
-            color=discord.Color.green(),
-            timestamp=utc_now(),
-        )
-        embed.add_field(name="Wallet", value=format_money(result["wallet"]), inline=True)
-        embed.add_field(
-            name="Total Shift Time",
-            value=format_duration(result["total_shift_seconds"]),
-            inline=True,
-        )
-        await send_response(interaction, embed=embed, ephemeral=True)
-
-    @app_commands.command(name="shift_stats", description="View someone's tracked ERLC shift time.")
-    @app_commands.guild_only()
-    @app_commands.describe(member="Pick someone else if you want to view their shift stats.")
-    async def shift_stats(
-        self,
-        interaction: discord.Interaction,
-        member: Optional[discord.Member] = None,
-    ) -> None:
-        guild = require_guild(interaction)
-        target = member or require_member(interaction)
-        data = await self.store.read()
-        guild_record = ensure_guild_record(data, guild.id)
-        record = ensure_user_record(guild_record, target, self.config.starting_balance)
-
-        embed = discord.Embed(
-            title=f"{target.display_name}'s Shift Stats",
-            color=discord.Color.blue(),
-            timestamp=utc_now(),
-        )
-        embed.add_field(
-            name="Total Time",
-            value=format_duration(int(record.get("total_shift_seconds", 0))),
-            inline=True,
-        )
-        embed.add_field(name="Patrol Count", value=str(int(record.get("patrol_count", 0))), inline=True)
-        embed.add_field(
-            name="Shift Status",
-            value=(
-                f"Active since {format_relative_time(record.get('active_shift_started_at'))}"
-                if record.get("active_shift_started_at")
-                else "Not currently on shift"
-            ),
-            inline=False,
-        )
-        await send_response(interaction, embed=embed)
 
     @app_commands.command(name="server", description="Show ERLC server details and optional live stats.")
     @app_commands.guild_only()
@@ -570,8 +367,3 @@ class CommunityCog(BaseCommunityCog):
             )
 
         await send_response(interaction, embed=embed)
-
-    @app_commands.command(name="patrol_tip", description="Get a quick ERLC patrol/community tip.")
-    @app_commands.guild_only()
-    async def patrol_tip(self, interaction: discord.Interaction) -> None:
-        await send_response(interaction, content=random.choice(PATROL_TIPS))
