@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Optional
 from urllib import error as urllib_error
+from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
 import discord
@@ -26,6 +27,7 @@ from prefix_bridge import PrefixCommandBridge
 from storage import JsonStore
 
 ERLC_API_TIMEOUT_SECONDS = 10
+MODERATION_API_TIMEOUT_SECONDS = 8
 FALLBACK_ERLC_API_BASE_URLS = (
     "https://api.policeroleplay.community/v1/server",
     "https://api.policeroleplay.community/v2/server",
@@ -83,6 +85,30 @@ class CommunityBot(commands.Bot):
     async def fetch_erlc_server_snapshot(self) -> dict[str, Any]:
         return await asyncio.to_thread(self._fetch_erlc_server_snapshot_sync)
 
+    async def fetch_moderation_profile_stats(
+        self, user_id: int, guild_id: Optional[int]
+    ) -> tuple[Optional[dict[str, int]], Optional[str]]:
+        if (
+            not self.config.moderation_profile_api_url
+            or not self.config.moderation_profile_api_token
+        ):
+            return None, None
+
+        try:
+            stats = await asyncio.to_thread(
+                self._fetch_moderation_profile_stats_sync,
+                user_id,
+                guild_id,
+            )
+        except Exception as error:
+            print(
+                "Could not fetch moderation profile stats for "
+                f"{user_id} in guild {guild_id}: {summarize_exception(error)}"
+            )
+            return None, "Unavailable right now."
+
+        return stats, None
+
     def _fetch_erlc_server_snapshot_sync(self) -> dict[str, Any]:
         if not self.config.erlc_server_key:
             raise RuntimeError("ERLC_SERVER_KEY is not configured.")
@@ -138,6 +164,66 @@ class CommunityBot(commands.Bot):
         if not isinstance(payload, dict):
             raise RuntimeError("ERLC API returned an unexpected response.")
         return payload
+
+    def _fetch_moderation_profile_stats_sync(
+        self, user_id: int, guild_id: Optional[int]
+    ) -> dict[str, int]:
+        request = urllib_request.Request(
+            self._build_moderation_profile_api_url(user_id, guild_id),
+            headers={
+                "Authorization": f"Bearer {self.config.moderation_profile_api_token or ''}",
+                "Accept": "application/json",
+                "User-Agent": self.config.erlc_http_user_agent,
+            },
+            method="GET",
+        )
+
+        try:
+            with urllib_request.urlopen(request, timeout=MODERATION_API_TIMEOUT_SECONDS) as response:
+                payload = parse_json_text(response.read().decode("utf-8"))
+        except urllib_error.HTTPError as http_error:
+            response_text = http_error.read().decode("utf-8", errors="replace")
+            payload = parse_json_text(response_text)
+            message = extract_api_error_message(payload) or response_text.strip() or http_error.reason
+            raise RuntimeError(
+                f"Moderation profile API request failed with status {http_error.code}: {message}"
+            )
+        except urllib_error.URLError as url_error:
+            raise RuntimeError(f"Could not reach the moderation profile API: {url_error.reason}")
+
+        if not isinstance(payload, dict):
+            raise RuntimeError("Moderation profile API returned an unexpected response.")
+
+        stats = payload.get("stats")
+        if not isinstance(stats, dict):
+            raise RuntimeError("Moderation profile API did not include a stats object.")
+
+        return {
+            "bans": self._coerce_moderation_stat(stats.get("bans")),
+            "kicks": self._coerce_moderation_stat(stats.get("kicks")),
+            "warns": self._coerce_moderation_stat(stats.get("warns")),
+            "mutes": self._coerce_moderation_stat(stats.get("mutes")),
+        }
+
+    def _build_moderation_profile_api_url(self, user_id: int, guild_id: Optional[int]) -> str:
+        base_url = (self.config.moderation_profile_api_url or "").strip().rstrip("/")
+        endpoint = (
+            base_url
+            if base_url.endswith("/profile-stats")
+            else f"{base_url}/profile-stats"
+        )
+        query = {"user_id": str(user_id)}
+        if guild_id is not None:
+            query["guild_id"] = str(guild_id)
+        return f"{endpoint}?{urllib_parse.urlencode(query)}"
+
+    @staticmethod
+    def _coerce_moderation_stat(value: object) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return max(parsed, 0)
 
 
 def main() -> None:

@@ -130,6 +130,7 @@ A standalone Discord bot for ERLC communities that focuses on economy, profiles,
 - favorite things and profile details
 - inventory and shop items
 - callsigns
+- optional moderation history from your separate moderation bot
 
 All server data is stored in a local JSON file at `data/community-store.json` by default.
 
@@ -172,6 +173,8 @@ For multi-word values in prefix mode, wrap them in quotes.
 - `DATA_FILE_PATH` changes where the JSON data is stored.
 - `STARTING_BALANCE` changes the default wallet value for new members.
 - `COMMAND_PREFIX` changes the text prefix for message commands.
+- `MODERATION_PROFILE_API_URL` points to your moderation bot service and lets `/profile` show bans, kicks, warns, and mutes.
+- `MODERATION_PROFILE_API_TOKEN` is the shared bearer token used to read those profile stats.
 - `ERLC_SERVER_NAME` sets the fallback server name shown in `/server`.
 - `ERLC_JOIN_CODE` sets the fallback join code shown in `/server`.
 - `COMMUNITY_INVITE_URL` adds a clickable invite link to `/server`.
@@ -186,3 +189,4 @@ For multi-word values in prefix mode, wrap them in quotes.
 - Economy data is stored per Discord server, so each community keeps its own progression.
 - If `ERLC_SERVER_KEY` is not set, `/server` still works with your configured fallback info.
 - Prefix commands require the Discord bot's `Message Content Intent` to be enabled in the Discord Developer Portal.
+- If you want moderation history in `/profile`, set the same shared token on both bots and point `MODERATION_PROFILE_API_URL` at the moderation bot's service URL. The bot will call `/profile-stats` automatically.

@@ -26,7 +26,13 @@ from helpers import (
 )
 
 
-def build_profile_embed(member: discord.Member, record: dict[str, Any]) -> discord.Embed:
+def build_profile_embed(
+    member: discord.Member,
+    record: dict[str, Any],
+    *,
+    moderation_stats: Optional[dict[str, int]] = None,
+    moderation_status: Optional[str] = None,
+) -> discord.Embed:
     embed = discord.Embed(
         title=f"{member.display_name}'s Community Profile",
         color=discord.Color.blurple(),
@@ -56,6 +62,20 @@ def build_profile_embed(member: discord.Member, record: dict[str, Any]) -> disco
     for label, value in details:
         if value:
             embed.add_field(name=label, value=value[:400], inline=False)
+
+    if moderation_stats is not None:
+        embed.add_field(
+            name="Moderation History",
+            value=(
+                f"Bans: {int(moderation_stats.get('bans', 0))}\n"
+                f"Kicks: {int(moderation_stats.get('kicks', 0))}\n"
+                f"Warns: {int(moderation_stats.get('warns', 0))}\n"
+                f"Mutes: {int(moderation_stats.get('mutes', 0))}"
+            ),
+            inline=False,
+        )
+    elif moderation_status:
+        embed.add_field(name="Moderation History", value=moderation_status[:400], inline=False)
 
     badges = build_badges(record)
     if badges:
@@ -150,7 +170,22 @@ class CommunityCog(BaseCommunityCog):
         data = await self.store.read()
         guild_record = ensure_guild_record(data, guild.id)
         record = ensure_user_record(guild_record, target, self.config.starting_balance)
-        await send_response(interaction, embed=build_profile_embed(target, record))
+        moderation_stats = None
+        moderation_status = None
+        if self.config.moderation_profile_api_url and self.config.moderation_profile_api_token:
+            moderation_stats, moderation_status = await self.bot.fetch_moderation_profile_stats(
+                target.id,
+                guild.id,
+            )
+        await send_response(
+            interaction,
+            embed=build_profile_embed(
+                target,
+                record,
+                moderation_stats=moderation_stats,
+                moderation_status=moderation_status,
+            ),
+        )
 
     @app_commands.command(name="bio", description="Set or clear the short bio on your community profile.")
     @app_commands.guild_only()

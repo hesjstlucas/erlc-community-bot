@@ -54,6 +54,8 @@ class BotConfig:
     data_file_path: Path
     starting_balance: int
     command_prefix: str
+    moderation_profile_api_url: Optional[str]
+    moderation_profile_api_token: Optional[str]
     erlc_server_name: str
     erlc_join_code: Optional[str]
     community_invite_url: Optional[str]
@@ -72,6 +74,8 @@ class BotConfig:
             ),
             starting_balance=parse_positive_int("STARTING_BALANCE", 500),
             command_prefix=os.getenv("COMMAND_PREFIX", "").strip() or "-",
+            moderation_profile_api_url=optional_text("MODERATION_PROFILE_API_URL"),
+            moderation_profile_api_token=optional_text("MODERATION_PROFILE_API_TOKEN"),
             erlc_server_name=os.getenv("ERLC_SERVER_NAME", "").strip() or "ERLC Community",
             erlc_join_code=optional_text("ERLC_JOIN_CODE"),
             community_invite_url=optional_text("COMMUNITY_INVITE_URL"),
