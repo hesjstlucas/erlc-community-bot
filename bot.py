@@ -53,6 +53,10 @@ class CommunityBot(commands.Bot):
         if self.config.register_guild_id:
             guild = discord.Object(id=self.config.register_guild_id)
             self.tree.copy_global_to(guild=guild)
+            # When testing in one guild, remove stale global commands first so
+            # Discord does not show duplicate global + guild-scoped entries.
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
             synced = await self.tree.sync(guild=guild)
             print(f"Synced {len(synced)} commands to guild {self.config.register_guild_id}.")
         else:
