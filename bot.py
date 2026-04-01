@@ -55,6 +55,13 @@ class CommunityBot(commands.Bot):
         await self.add_cog(UtilityCog(self))
         await self.add_cog(GeneratorCog(self))
 
+        if not self.config.sync_commands_on_startup:
+            print(
+                "Skipping slash command sync on startup. "
+                "Set SYNC_COMMANDS_ON_STARTUP=true when you want to refresh slash commands."
+            )
+            return
+
         if self.config.register_guild_id:
             guild = discord.Object(id=self.config.register_guild_id)
             self.tree.copy_global_to(guild=guild)

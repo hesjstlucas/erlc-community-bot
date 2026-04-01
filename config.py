@@ -47,6 +47,17 @@ def parse_positive_int(name: str, default: int) -> int:
     return parsed
 
 
+def parse_optional_bool(name: str) -> Optional[bool]:
+    raw = os.getenv(name, "").strip().lower()
+    if not raw:
+        return None
+    if raw in {"1", "true", "yes", "y", "on"}:
+        return True
+    if raw in {"0", "false", "no", "n", "off"}:
+        return False
+    raise RuntimeError(f"{name} must be true or false.")
+
+
 @dataclass(frozen=True)
 class BotConfig:
     discord_token: str
@@ -54,6 +65,7 @@ class BotConfig:
     data_file_path: Path
     starting_balance: int
     command_prefix: str
+    sync_commands_on_startup: bool
     moderation_profile_api_url: Optional[str]
     moderation_profile_api_token: Optional[str]
     erlc_server_name: str
@@ -66,14 +78,21 @@ class BotConfig:
 
     @classmethod
     def from_env(cls) -> "BotConfig":
+        register_guild_id = parse_optional_id(os.getenv("REGISTER_GUILD_ID", ""))
+        sync_commands_override = parse_optional_bool("SYNC_COMMANDS_ON_STARTUP")
         return cls(
             discord_token=require_env("DISCORD_TOKEN"),
-            register_guild_id=parse_optional_id(os.getenv("REGISTER_GUILD_ID", "")),
+            register_guild_id=register_guild_id,
             data_file_path=Path(
                 os.getenv("DATA_FILE_PATH", "").strip() or "data/community-store.json"
             ),
             starting_balance=parse_positive_int("STARTING_BALANCE", 500),
             command_prefix=os.getenv("COMMAND_PREFIX", "").strip() or "-",
+            sync_commands_on_startup=(
+                sync_commands_override
+                if sync_commands_override is not None
+                else register_guild_id is not None
+            ),
             moderation_profile_api_url=optional_text("MODERATION_PROFILE_API_URL"),
             moderation_profile_api_token=optional_text("MODERATION_PROFILE_API_TOKEN"),
             erlc_server_name=os.getenv("ERLC_SERVER_NAME", "").strip() or "ERLC Community",

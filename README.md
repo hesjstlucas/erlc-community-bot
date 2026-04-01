@@ -170,6 +170,7 @@ For multi-word values in prefix mode, wrap them in quotes.
 
 - `DISCORD_TOKEN` is required.
 - `REGISTER_GUILD_ID` is optional and lets slash commands sync instantly to one test server.
+- `SYNC_COMMANDS_ON_STARTUP` controls whether slash commands are re-synced on boot. By default this is on for one-guild testing and off for global mode to avoid Discord rate limits during redeploys.
 - `DATA_FILE_PATH` changes where the JSON data is stored.
 - `STARTING_BALANCE` changes the default wallet value for new members.
 - `COMMAND_PREFIX` changes the text prefix for message commands.
@@ -189,4 +190,5 @@ For multi-word values in prefix mode, wrap them in quotes.
 - Economy data is stored per Discord server, so each community keeps its own progression.
 - If `ERLC_SERVER_KEY` is not set, `/server` still works with your configured fallback info.
 - Prefix commands require the Discord bot's `Message Content Intent` to be enabled in the Discord Developer Portal.
+- If you mainly use prefix commands, leaving `SYNC_COMMANDS_ON_STARTUP` blank is usually best in global mode.
 - If you want moderation history in `/profile`, set the same shared token on both bots and point `MODERATION_PROFILE_API_URL` at the moderation bot's service URL. The bot will call `/profile-stats` automatically.
