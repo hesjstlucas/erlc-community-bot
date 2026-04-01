@@ -53,6 +53,7 @@ class BotConfig:
     register_guild_id: Optional[int]
     data_file_path: Path
     starting_balance: int
+    command_prefix: str
     erlc_server_name: str
     erlc_join_code: Optional[str]
     community_invite_url: Optional[str]
@@ -70,6 +71,7 @@ class BotConfig:
                 os.getenv("DATA_FILE_PATH", "").strip() or "data/community-store.json"
             ),
             starting_balance=parse_positive_int("STARTING_BALANCE", 500),
+            command_prefix=os.getenv("COMMAND_PREFIX", "").strip() or "-",
             erlc_server_name=os.getenv("ERLC_SERVER_NAME", "").strip() or "ERLC Community",
             erlc_join_code=optional_text("ERLC_JOIN_CODE"),
             community_invite_url=optional_text("COMMUNITY_INVITE_URL"),

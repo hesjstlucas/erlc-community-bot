@@ -5,6 +5,7 @@ A standalone Discord bot for ERLC communities that focuses on economy, profiles,
 - no moderation commands
 - no staff patrol or shift systems
 - 70+ community-focused slash commands
+- matching prefix commands like `-fact` and `-balance`
 
 ## Command Categories
 
@@ -151,12 +152,26 @@ py bot.py
 
 Railway can use the included `Procfile` directly.
 
+## Prefix Commands
+
+The bot supports both slash commands and prefix commands.
+
+- Example: `-fact`
+- Default prefix: `-`
+- Change it with `COMMAND_PREFIX`
+
+For multi-word values in prefix mode, wrap them in quotes.
+
+- Example: `-poll "Best snack?" "Chips" "Cookies"`
+- Example: `-bio "just here for good vibes"`
+
 ## Environment Variables
 
 - `DISCORD_TOKEN` is required.
 - `REGISTER_GUILD_ID` is optional and lets slash commands sync instantly to one test server.
 - `DATA_FILE_PATH` changes where the JSON data is stored.
 - `STARTING_BALANCE` changes the default wallet value for new members.
+- `COMMAND_PREFIX` changes the text prefix for message commands.
 - `ERLC_SERVER_NAME` sets the fallback server name shown in `/server`.
 - `ERLC_JOIN_CODE` sets the fallback join code shown in `/server`.
 - `COMMUNITY_INVITE_URL` adds a clickable invite link to `/server`.
@@ -170,3 +185,4 @@ Railway can use the included `Procfile` directly.
 - This bot is intentionally community-focused and ships with zero moderation tools.
 - Economy data is stored per Discord server, so each community keeps its own progression.
 - If `ERLC_SERVER_KEY` is not set, `/server` still works with your configured fallback info.
+- Prefix commands require the Discord bot's `Message Content Intent` to be enabled in the Discord Developer Portal.

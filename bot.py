@@ -22,6 +22,7 @@ from helpers import (
     parse_json_text,
     summarize_exception,
 )
+from prefix_bridge import PrefixCommandBridge
 from storage import JsonStore
 
 ERLC_API_TIMEOUT_SECONDS = 10
@@ -36,10 +37,12 @@ class CommunityBot(commands.Bot):
         intents = discord.Intents.default()
         intents.guilds = True
         intents.members = True
+        intents.message_content = True
 
-        super().__init__(command_prefix="!", intents=intents)
+        super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
         self.store = store
+        self.prefix_bridge = PrefixCommandBridge(self, config.command_prefix)
 
     async def setup_hook(self) -> None:
         await self.store.load()
@@ -66,6 +69,16 @@ class CommunityBot(commands.Bot):
     async def on_ready(self) -> None:
         if self.user is not None:
             print(f"Logged in as {self.user} ({self.user.id})")
+
+    async def on_message(self, message: discord.Message) -> None:
+        if message.author.bot:
+            return
+
+        handled = await self.prefix_bridge.dispatch(message)
+        if handled:
+            return
+
+        await self.process_commands(message)
 
     async def fetch_erlc_server_snapshot(self) -> dict[str, Any]:
         return await asyncio.to_thread(self._fetch_erlc_server_snapshot_sync)
